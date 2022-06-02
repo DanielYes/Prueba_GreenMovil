@@ -1,0 +1,53 @@
+import csv
+# from datetime import datetime
+
+def read_buses(desde,hasta):
+    with open(f"./telemetria_funcionamiento.csv","r", encoding = "utf-8") as f:
+        reader = csv.reader(f)
+        tittles_buses = next(reader)
+        buses = []
+        for row in reader:
+            buses.append(row)
+    print(f'Definiendo buses ({len(buses)})')
+    buses_day(buses,tittles_buses,desde,hasta)
+
+def buses_day(buses,tittles_buses,desde,hasta):
+    for i in range (desde,hasta+1):
+        data = []
+        try:
+            with open(f"./data/{i}_p60.csv","r", encoding = "utf-8") as f:
+                tittles = f.readline().split(",")
+                for line in f:
+                    data.append(line.split(","))
+                buses_evaluate(data,buses,i,tittles_buses)
+        except FileNotFoundError:
+            pass
+
+def buses_evaluate(data,buses,num,tittles):
+    date = str(num)[6:]+"-"+str(num)[4:6]+"-"+str(num)[:4]
+    tittles.append(date)
+    print(f'Construyendo telemetria de la fecha: {date}...')
+    for bus in buses:
+        correcto = 0
+        total = 0
+        for line in data:
+            if bus[0] == line[3]:
+                total += 1
+            if bus[0] == line[3] and float(line[9]) > 0:
+                correcto += 1
+        if correcto == 0 and total == 0:
+            bus.append("Sin Registro")
+        elif correcto == 0 and total > 0:
+            bus.append("Sin datos")
+        elif correcto <= (90*total)/100:
+            bus.append("Dato irregular")
+        elif correcto > (90*total)/100:
+            bus.append("Dato correcto")
+    write_buses(buses,tittles)
+
+def write_buses(buses,tittles):
+    with open(f"./telemetria_funcionamiento.csv","w", encoding = "utf-8", newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(tittles)
+        for bus in buses:
+            writer.writerow(bus)
